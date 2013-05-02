@@ -28,8 +28,10 @@ class HuffmanNode:
         return "(" + str(self.frequency) + "," + str(self.word) + ")"
 
 mappings = dict()
+worst_ten = []
+best_ten = []
 
-def run(num_oldest_speeches):
+def run(num_speeches):
     word_set = dict()
     directory = os.path.join(os.getcwd(), "speechdata")
     for root, dirs, files in os.walk(directory):
@@ -40,13 +42,21 @@ def run(num_oldest_speeches):
 
     for root, dirs, files in os.walk(directory):
         files.sort()
-        count = 1
-        while count <= int(num_oldest_speeches):
-            with open(os.path.join(directory, files[-count]), 'r') as f:
-                for word in f.read().split(" "):
-                    word_set[word] += 1
-            count +=1
-    
+        if int(num_speeches) > 0:
+            count = 1
+            while count <= int(num_speeches):
+                with open(os.path.join(directory, files[count]), 'r') as f:
+                    for word in f.read().split(" "):
+                        word_set[word] += 1
+                count +=1
+        else:
+            count = -1
+            while count >= int(num_speeches):
+                with open(os.path.join(directory, files[count]), 'r') as f:
+                    for word in f.read().split(" "):
+                        word_set[word] += 1
+                count -=1
+
     tree = build_huffman(word_set)
     build_mappings(tree, "")
     dates = []
@@ -58,9 +68,24 @@ def run(num_oldest_speeches):
             dt = fi[:-9].split("_")
             dates.append(datetime.date(int(dt[0]), int(dt[1]), int(dt[2])))
             with open(os.path.join(directory, fi), 'r') as f:
-                ratios.append(compute_compression(f.read()))
+                ratio = compute_compression(f.read())
+                #if len(worst_ten) < 10: 
+                #    worst_ten.append((fi, ratio))
+                #    worst_ten.sort(cmp=lambda x,y: cmp(x[1], y[1]))
+                #elif worst_ten[0] < ratio:
+                #    worst_ten[0] = (fi, ratio)
+                #    worst_ten.sort(cmp=lambda x,y: cmp(x[1], y[1]))
+                #if len(best_ten) < 10: 
+                #    best_ten.append((fi, ratio))
+                #    best_ten.sort(cmp=lambda x,y: cmp(x[1], y[1]))
+                #elif best_ten[9] > ratio:
+                #    best_ten[9] = (fi, ratio)
+                #    best_ten.sort(cmp=lambda x,y: cmp(x[1], y[1]))
+                ratios.append(ratio)
     plt.plot(dates, ratios)
-    plt.ylim((0.5, 1.5))
+    plt.ylim((0.5, 2.0))
+    #print worst_ten
+    #print best_ten
     plt.show()
 
 def compute_compression(file_data):
@@ -71,6 +96,7 @@ def compute_compression(file_data):
         bit_stream += mappings[word]
         word_count += 1
     block_code = math.ceil(math.log(word_count, 2)) * word_count
+    ratio = len(bit_stream) / block_code
     return str(len(bit_stream) / block_code)
 
 def build_mappings(node, code):
